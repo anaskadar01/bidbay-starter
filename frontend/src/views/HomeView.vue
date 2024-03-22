@@ -1,10 +1,25 @@
 <script setup>
 import { ref, computed } from "vue";
 
+const endpoint = 'http://localhost:3000';
+const header = {
+  'Content-Type' : "application/json",
+}
 const loading = ref(false);
 const error = ref(false);
 
 async function fetchProducts() {
+  const res = await fetch(`${endpoint}/api/products`,{ header})
+  if(res.ok){
+    const resJson = await res.json();
+    console.log(resJson);
+    return resJson.map((r) => ({
+  
+    }))
+  }
+  throw new Error ('KO')
+
+
   loading.value = true;
   error.value = false;
 
@@ -18,7 +33,6 @@ async function fetchProducts() {
 
 fetchProducts();
 </script>
-
 <template>
   <div>
     <h1 class="text-center mb-4">Liste des produits</h1>
