@@ -7,15 +7,24 @@ const header = {
 }
 const loading = ref(false);
 const error = ref(false);
-
+let listProduct = ref([]);
 async function fetchProducts() {
   const res = await fetch(`${endpoint}/api/products`,{ header})
   if(res.ok){
     const resJson = await res.json();
     console.log(resJson);
     return resJson.map((r) => ({
-  
-    }))
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      category: r.category,
+      originalPrice: r.originalPrice,
+      pictureUrl: r.pictureUrl,
+      username: r.seller.username,
+      endDate: r.endDate,
+
+  }))
+
   }
   throw new Error ('KO')
 
@@ -30,11 +39,13 @@ async function fetchProducts() {
     loading.value = false;
   }
 }
-
-fetchProducts();
+fetchProducts().then((r)=> listProduct.value = r);
+console.log(listProduct);
 </script>
 <template>
   <div>
+
+
     <h1 class="text-center mb-4">Liste des produits</h1>
 
     <div class="row mb-3">
@@ -86,43 +97,47 @@ fetchProducts();
       Une erreur est survenue lors du chargement des produits.
     </div>
     <div class="row">
-      <div class="col-md-4 mb-4" v-for="i in 10" data-test-product :key="i">
+
+      <div class="col-md-4 mb-4" v-for="product in listProduct" :key="product.key">
         <div class="card">
           <RouterLink :to="{ name: 'Product', params: { productId: 'TODO' } }">
             <img
-              src="https://picsum.photos/id/403/512/512"
-              data-test-product-picture
-              class="card-img-top"
+                :src="product.pictureUrl" alt="img"
+                data-test-product-picture
+                class="card-img-top"
             />
           </RouterLink>
           <div class="card-body">
             <h5 class="card-title">
               <RouterLink
-                data-test-product-name
-                :to="{ name: 'Product', params: { productId: 'TODO' } }"
+                  data-test-product-name
+                  :to="{ name: 'Product', params: { productId: 'TODO' } }"
               >
-                Machine à écrire
+                {{product.name}}
               </RouterLink>
             </h5>
             <p class="card-text" data-test-product-description>
-              Machine à écrire vintage en parfait état de fonctionnement
+              {{product.description}}
             </p>
             <p class="card-text">
               Vendeur :
               <RouterLink
-                data-test-product-seller
-                :to="{ name: 'User', params: { userId: 'TODO' } }"
+                  data-test-product-seller
+                  :to="{ name: 'User', params: { userId: 'TODO' } }"
               >
-                alice
+                {{product.username}}
               </RouterLink>
             </p>
             <p class="card-text" data-test-product-date>
-              En cours jusqu'au 05/04/2026
+              En cours jusqu'au {{ product.endDate }}
             </p>
-            <p class="card-text" data-test-product-price>Prix actuel : 42 €</p>
+            <p class="card-text" data-test-product-price>Prix actuel : {{product.originalPrice}} €</p>
           </div>
         </div>
       </div>
+
+
+
     </div>
   </div>
 </template>
