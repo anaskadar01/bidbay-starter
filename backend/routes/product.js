@@ -30,11 +30,15 @@ router.get('/api/products/:productId', async (req, res) => {
         as: 'seller'
       }, {
         model: Bid,
-        as: 'bids'
+        as: 'bids',
+        include: [{
+          model: User,
+          as: 'bidder'
+        }]
       }]
     })
     if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+      return res.status(404).json({ error: 'Product not found' })
     }
     res.json(product)
   } catch (error) {
