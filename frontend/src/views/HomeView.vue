@@ -55,7 +55,7 @@ function goodDate(date){
 
 fetchProducts().then((r) => listProduct.value = r);
 console.log(listProduct);
-
+let bouton = document.querySelector("#buttonTri");
 
 
 </script>
