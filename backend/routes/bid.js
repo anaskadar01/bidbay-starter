@@ -1,7 +1,6 @@
 import authMiddleware from '../middlewares/auth.js'
 import { Bid, Product } from '../orm/index.js'
 import express from 'express'
-import { getDetails } from '../validators/index.js'
 
 const router = express.Router()
 
