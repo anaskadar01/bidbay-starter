@@ -6,6 +6,7 @@ import { getDetails } from '../validators/index.js'
 const router = express.Router()
 
 router.delete('/api/bids/:bidId', async (req, res) => {
+
   res.status(600).send()
 })
 
