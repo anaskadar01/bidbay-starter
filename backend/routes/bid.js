@@ -31,8 +31,48 @@ router.delete('/api/bids/:bidId', authMiddleware, async (req, res) => {
   res.status(600).send()
 })
 
-router.post('/api/products/:productId/bids', async (req, res) => {
-  res.status(600).send()
-})
+router.post('/api/products/:productId/bids', authMiddleware, async (req, res) => {
+  try {
+    const productId = req.params.productId;
+    const { price } = req.body;
+
+    if (!price) {
+      return res.status(400).json({ error: 'Invalid or missing fields', details: ['price'] });
+    }
+
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const existingProduct = await Product.findByPk(productId);
+    if (!existingProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    const newBid = await Bid.create({
+      price,
+      productId,
+      bidderId: req.user.id,
+      date: new Date()
+    });
+
+    const formattedResponse = {
+      id: newBid.id,
+      productId: newBid.productId,
+      bidderId: newBid.bidderId,
+      price: newBid.price,
+      date: newBid.date
+    };
+
+    res.status(201).json(formattedResponse);
+  } catch (error) {
+    console.error('Error creating bid:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+
+
 
 export default router
