@@ -1,16 +1,16 @@
 <script setup>
-import { ref, computed } from "vue";
+import {ref, computed} from "vue";
 
 const endpoint = 'http://localhost:3000';
 const header = {
-  'Content-Type' : "application/json",
+  'Content-Type': "application/json",
 }
 const loading = ref(false);
 const error = ref(false);
 let listProduct = ref([]);
 async function fetchProducts() {
-  const res = await fetch(`${endpoint}/api/products`,{ header})
-  if(res.ok){
+  const res = await fetch(`${endpoint}/api/products`, {header})
+  if (res.ok) {
     const resJson = await res.json();
     console.log(resJson);
     return resJson.map((r) => ({
@@ -21,12 +21,13 @@ async function fetchProducts() {
       originalPrice: r.originalPrice,
       pictureUrl: r.pictureUrl,
       username: r.seller.username,
-      endDate: r.endDate,
+      endDate:r.endDate,// goodDate(r.endDate),
 
-  }))
+
+    }))
 
   }
-  throw new Error ('KO')
+  throw new Error('KO')
 
 
   loading.value = true;
@@ -39,8 +40,24 @@ async function fetchProducts() {
     loading.value = false;
   }
 }
-fetchProducts().then((r)=> listProduct.value = r);
+
+
+
+function goodDate(date){
+  let dateCurrent = new Date();
+  if(dateCurrent.toISOString() > date){
+    return "Terminé";
+  }
+  else{
+    return 'En cours jusqu\'au '+ date.split('T')[0];
+  }
+}
+
+fetchProducts().then((r) => listProduct.value = r);
 console.log(listProduct);
+
+
+
 </script>
 <template>
   <div>
@@ -65,6 +82,7 @@ console.log(listProduct);
       <div class="col-md-6 text-end">
         <div class="btn-group">
           <button
+              id="buttonTri"
             type="button"
             class="btn btn-primary dropdown-toggle"
             data-bs-toggle="dropdown"
@@ -98,7 +116,7 @@ console.log(listProduct);
     </div>
     <div class="row">
 
-      <div class="col-md-4 mb-4" v-for="product in listProduct" :key="product.key">
+      <div class="col-md-4 mb-4" v-for="product in listProduct" :key="product.key" data-test-product>
         <div class="card">
           <RouterLink :to="{ name: 'Product', params: { productId: 'TODO' } }">
             <img
@@ -129,7 +147,7 @@ console.log(listProduct);
               </RouterLink>
             </p>
             <p class="card-text" data-test-product-date>
-              En cours jusqu'au {{ product.endDate }}
+              En cours jusqu'au {{goodDate( product.endDate) }}
             </p>
             <p class="card-text" data-test-product-price>Prix actuel : {{product.originalPrice}} €</p>
           </div>
