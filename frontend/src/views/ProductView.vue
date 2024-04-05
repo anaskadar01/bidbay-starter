@@ -9,13 +9,45 @@ const route = useRoute();
 const router = useRouter();
 
 const productId = ref(route.params.productId);
-
+const product = ref({});
+const loading = ref(true);
+const offerPrice = ref(10);
+const countdownDiff = ref(0);
+const errorText = ref("");
+const productName = ref("");
 /**
  * @param {number|string|Date|VarDate} date
  */
 function formatDate(date) {
   const options = { year: "numeric", month: "long", day: "numeric" };
   return new Date(date).toLocaleDateString("fr-FR", options);
+}
+
+async function getProduct() {
+  const query = await fetch(
+    `http://localhost:3000/api/products/${productId.value}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+  const res = await query.json();
+
+  if (query.ok) {
+    product.value = res;
+    offerPrice.value = product.value.originalPrice;
+    countdownDiff.value = Math.floor(
+      Math.abs(Date.now() - new Date(product.value.endDate)) / 1000,
+    );
+  } else {
+    errorText.value =
+      `${res?.error}: ${res?.details}` ?? "Une erreur est survenue";
+  }
+
+  loading.value = false;
 }
 </script>
 
@@ -56,7 +88,7 @@ function formatDate(date) {
         <div class="row">
           <div class="col-lg-6">
             <h1 class="mb-3" data-test-product-name>
-              Appareil photo argentique
+              {{ product.name }}
             </h1>
           </div>
           <div class="col-lg-6 text-end">
