@@ -1,54 +1,40 @@
 <script setup>
 import { ref, computed } from "vue";
 
+const loading = ref(false);
+const error = ref(false);
+const produits = ref([]);
+const search = ref("");
 const endpoint = "http://localhost:3000";
 const header = {
   "Content-Type": "application/json",
 };
 
-const loading = ref(false);
-const error = ref(false);
-const filterName = ref("");
-let listProduct = ref([]);
-
-function sortName() {
-  let button = document.getElementById("buttonTri");
-  listProduct.value.sort(function (a, b) {
-    const nameA = a.name.toLowerCase();
-    const nameB = b.name.toLowerCase();
-    button.innerHTML = "Trier par nom";
-    if (nameA < nameB) {
-      return -1;
-    }
-    if (nameA > nameB) {
-      return 1;
-    }
-    return 0;
-  });
-}
-
 async function fetchProducts() {
   loading.value = true;
   error.value = false;
+
   try {
-    const res = await fetch(`${endpoint}/api/products`, { header });
+    const res = await fetch(`${endpoint}/api/products/`, { header });
     if (res.ok) {
       const resJson = await res.json();
-      console.log(resJson);
-      const sortedProducts = resJson.map((r) => ({
+      const sortedPro = resJson.map((r) => ({
+        bids: r.bids,
+        category: r.category,
+        createdAt: r.createdAt,
+        description: r.description,
+        endDate: r.endDate,
         id: r.id,
         name: r.name,
-        description: r.description,
-        category: r.category,
         originalPrice: r.originalPrice,
         pictureUrl: r.pictureUrl,
-        username: r.seller.username,
-        endDate: r.endDate,
-        bids: maxBidPrice(r.bids),
+        seller: r.seller,
+        sellerId: r.sellerId,
+        updatedAt: r.updatedAt,
       }));
-      listProduct.value = sortedProducts;
+      produits.value = sortedPro;
       sortName();
-      return sortedProducts;
+      return sortedPro;
     }
   } catch (e) {
     error.value = true;
@@ -58,9 +44,20 @@ async function fetchProducts() {
 }
 
 fetchProducts();
-function goodDate(date) {
+
+function maxBidPrice(bids) {
+  if (bids.length === 0) {
+    return 0;
+  }
+  const maxPrice = bids.reduce((max, bid) => {
+    return Math.max(max, bid.price);
+  }, bids[0].price);
+  return maxPrice;
+}
+
+function goodDate(d) {
   let currentDate = new Date();
-  let inputDate = new Date(date);
+  let inputDate = new Date(d);
 
   if (currentDate > inputDate) {
     return "Terminé";
@@ -74,15 +71,34 @@ function goodDate(date) {
   }
 }
 
-//fetchProducts().then((r) => (listProduct.value = r));
-//console.log(listProduct);
+
+const filteredProduits = computed(() => {
+  const searchTerm = search.value.toLowerCase();
+  return produits.value.filter(product => product.name.toLowerCase().includes(searchTerm));
+});
+
+function sortName() {
+  produits.value.sort(function (a, b) {
+    var btn = (document.getElementById("sort-btn").innerHTML = "Trier par nom");
+    const nameA = a.name.toLowerCase();
+    const nameB = b.name.toLowerCase();
+
+    if (nameA < nameB) {
+      return -1;
+    }
+    if (nameA > nameB) {
+      return 1;
+    }
+    return 0;
+  });
+}
 
 function sortPrice() {
-  let button = document.getElementById("buttonTri");
-  listProduct.value.sort(function (a, b) {
+  produits.value.sort(function (a, b) {
+    var btn = (document.getElementById("sort-btn").innerHTML = "Trier par prix");
     const priceA = a.originalPrice;
     const priceB = b.originalPrice;
-    button.innerHTML = "Trier par prix";
+
     if (priceA < priceB) {
       return -1;
     }
@@ -92,33 +108,23 @@ function sortPrice() {
     return 0;
   });
 }
-
-function maxBidPrice(bids) {
-  if (bids.length === 0) {
-    return 0;
-  }
-  const maxPrice = bids.reduce((max, bid) => {
-    return Math.max(max, bid.price);
-  }, bids[0].price);
-  return maxPrice;
-}
-console.log("lalal");
 </script>
+
 <template>
   <div>
     <h1 class="text-center mb-4">Liste des produits</h1>
+
     <div class="row mb-3">
       <div class="col-md-6">
         <form>
           <div class="input-group">
             <span class="input-group-text">Filtrage</span>
             <input
-              id="filterName"
-              type="text"
-              class="form-control"
-              placeholder="Filtrer par nom"
-              data-test-filter
-              v-model="filterName"
+                v-model="search"
+                type="text"
+                class="form-control"
+                placeholder="Filtrer par nom"
+                data-test-filter
             />
           </div>
         </form>
@@ -126,28 +132,33 @@ console.log("lalal");
       <div class="col-md-6 text-end">
         <div class="btn-group">
           <button
-            id="buttonTri"
-            type="button"
-            class="btn btn-primary dropdown-toggle"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            data-test-sorter
+              id="sort-btn"
+              type="button"
+              class="btn btn-primary dropdown-toggle"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              data-test-sorter
           >
             Trier par nom
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
-              <a class="dropdown-item" @click="sortName" href="#"> Nom </a>
+              <a
+                  class="dropdown-item"
+                  href="#"
+                  @click="sortName()"
+                  data-test-sorter-name
+              >Nom</a
+              >
             </li>
             <li>
               <a
-                class="dropdown-item"
-                @click="sortPrice"
-                href="#"
-                data-test-sorter-price
+                  class="dropdown-item"
+                  href="#"
+                  @click="sortPrice()"
+                  data-test-sorter-price
+              >Prix</a
               >
-                Prix
-              </a>
             </li>
           </ul>
         </div>
@@ -161,36 +172,34 @@ console.log("lalal");
     </div>
 
     <div
-      v-if="error"
-      class="alert alert-danger mt-4"
-      role="alert"
-      data-test-error
+        v-if="error"
+        class="alert alert-danger mt-4"
+        role="alert"
+        data-test-error
     >
       Une erreur est survenue lors du chargement des produits.
     </div>
+
     <div class="row">
       <div
-        class="col-md-4 mb-4"
-        v-for="(product, i) in listProduct"
-        :key="product.key"
-        data-test-product
+          class="col-md-4 mb-4"
+          v-for="product in filteredProduits"
+          :key="product.key"
+          data-test-product
       >
         <div class="card">
-          <RouterLink
-            :to="{ name: 'Product', params: { productId: product.id } }"
-          >
+          <RouterLink :to="{ name: 'Product', params: { productId: product.id } }">
             <img
-              :src="product.pictureUrl"
-              alt="img"
-              data-test-product-picture
-              class="card-img-top"
+                :src="product.pictureUrl"
+                data-test-product-picture
+                class="card-img-top"
             />
           </RouterLink>
           <div class="card-body">
             <h5 class="card-title">
               <RouterLink
-                data-test-product-name
-                :to="{ name: 'Product', params: { productId: product.id } }"
+                  data-test-product-name
+                  :to="{ name: 'Product', params: { productId: product.id } }"
               >
                 {{ product.name }}
               </RouterLink>
@@ -201,21 +210,20 @@ console.log("lalal");
             <p class="card-text">
               Vendeur :
               <RouterLink
-                data-test-product-seller
-                :to="{ name: 'User', params: { userId: 'TODO' } }"
+                  data-test-product-seller
+                  :to="{ name: 'User', params: { userId: product.sellerId } }"
               >
-                {{ product.username }}
+                {{ product.seller.username }}
               </RouterLink>
             </p>
-
             <p class="card-text" data-test-product-date>
               {{ goodDate(product.endDate) }}
             </p>
-            <p v-if="product.bids" data-test-product-price>
-              Prix actuel : {{ product.originalPrice }} €
+            <p v-if="product.bids[0]" data-test-product-price>
+              Prix actuel : {{ maxBidPrice(product.bids) }} €
             </p>
             <p v-else data-test-product-price>
-              Prix initial : {{ product.originalPrice }} €
+              Prix de départ : {{ product.originalPrice }} €
             </p>
           </div>
         </div>
