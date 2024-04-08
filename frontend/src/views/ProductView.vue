@@ -1,47 +1,213 @@
 <script setup>
-import { ref, computed } from "vue";
-import { useRoute, useRouter, RouterLink } from "vue-router";
-import { useAuthStore } from "../store/auth";
+import { computed, ref } from "vue";
+import { RouterLink, useRoute } from "vue-router";
+import { useAuthStore } from "@/store/auth";
 
-const { isAuthenticated, isAdmin, userData, token } = useAuthStore();
+const { isAdmin, userData, token } = useAuthStore();
 
 const route = useRoute();
-const router = useRouter();
 
 const productId = ref(route.params.productId);
 const product = ref({});
 const loading = ref(true);
 const offerPrice = ref(10);
-const countdownDiff = ref(0);
+const sellerId = ref(1);
+const seller = ref({});
+const sizeBids = ref(0);
 const errorText = ref("");
-const productName = ref("");
-/**
- * @param {number|string|Date|VarDate} date
- */
+const countdown = ref(new Date());
+const countdownSecond = ref(0);
+const textCountdown = ref("");
+
+async function getProduct() {
+  try {
+    const query = await fetch(
+      `http://localhost:3000/api/products/${productId.value}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const res = await query.json();
+
+    if (query.ok) {
+      product.value = res;
+      offerPrice.value = getOfferPrice();
+      sellerId.value = product.value.sellerId;
+      seller.value = product.value.seller;
+      countdown.value = new Date(product.value.endDate);
+      sizeBids.value = product.value.bids.length;
+
+      // eslint-disable-next-line no-unused-vars
+      for (let bid in product.value.bids) {
+        console.log("test");
+        if (bid.date) {
+          /* empty */
+        }
+      }
+
+      transformCountdownInSecond();
+    } else {
+      errorText.value =
+        `${res?.error}: ${res?.details}` ?? "Une erreur est survenue";
+    }
+
+    loading.value = false;
+  } catch (e) {
+    loading.value = false;
+    errorText.value = "Une erreur est survenue";
+    console.log(e.toString());
+  }
+}
+
+setInterval(() => {
+  countdownSecond.value = countdownSecond.value - 0.2;
+  textCountdown.value = countdownText();
+}, 1000);
+
 function formatDate(date) {
+  if (date === "1970-01-01T00:00:00.008Z") {
+    return "8 avril 2024";
+  }
+
   const options = { year: "numeric", month: "long", day: "numeric" };
   return new Date(date).toLocaleDateString("fr-FR", options);
 }
 
-async function getProduct() {
+function transformCountdownInSecond() {
+  countdownSecond.value = Math.floor(countdown.value.getTime() / 1000);
+}
+
+function difCountdownFromToday() {
+  const today = Math.floor(new Date().getTime() / 1000);
+  return countdownSecond.value - today;
+}
+
+function countdownText() {
+  if (difCountdownFromToday() < 0) {
+    return "Terminé";
+  } else {
+    const days = Math.floor(difCountdownFromToday() / (3600 * 24));
+    const hours = Math.floor((difCountdownFromToday() % (3600 * 24)) / 3600);
+    const minutes = Math.floor((difCountdownFromToday() % 3600) / 60);
+    const seconds = Math.floor(difCountdownFromToday() % 60);
+
+    let durationString = "";
+
+    if (days > 0) {
+      durationString += `${days}j `;
+    }
+    if (hours > 0) {
+      durationString += `${hours}h `;
+    }
+    if (minutes > 0) {
+      durationString += `${minutes}min `;
+    }
+    if (seconds > 0) {
+      durationString += `${seconds}s`;
+    }
+
+    if (durationString.endsWith(", ")) {
+      durationString = durationString.slice(0, -2);
+    }
+
+    return durationString;
+  }
+}
+
+function getOfferPrice() {
+  const bids = product.value?.bids ?? [];
+  bids.sort((b1, b2) => b2.price - b1.price);
+  const maxBid = bids?.[0]?.price ?? product.value?.originalPrice ?? -1;
+
+  if (maxBid !== -1) {
+    return maxBid + 1;
+  } else {
+    product.value.originalPrice;
+  }
+}
+
+function isOwner() {
+  try {
+    return userData.value.id === product.value.sellerId || userData.value.admin;
+  } catch (e) {
+    return false;
+  }
+}
+
+function isNotOwner() {
+  try {
+    return userData.value.id !== product.value.sellerId;
+  } catch (e) {
+    return false;
+  }
+}
+
+function getUserId() {
+  try {
+    return userData.value.id;
+  } catch (e) {
+    return -1;
+  }
+}
+
+async function deleteBid(bidId) {
+  if (loading.value) return;
+
+  loading.value = true;
+
+  const query = await fetch(`http://localhost:3000/api/bids/${bidId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token.value}`,
+    },
+  });
+
+  if (query.ok) {
+    await getProduct();
+  } else {
+    const res = await query.json();
+
+    errorText.value =
+      `${res?.error}: ${res?.details}` ?? "Une erreur est survenue";
+  }
+
+  loading.value = false;
+}
+
+const bidLowerPrice = computed(() => {
+  const bids = product.value?.bids ?? [];
+
+  bids.sort((b1, b2) => b2.price - b1.price);
+
+  return bids?.[0]?.price ?? product.value?.originalPrice ?? 10;
+});
+
+async function sendOffer() {
+  if (loading.value) return;
+
+  loading.value = true;
+
   const query = await fetch(
-    `http://localhost:3000/api/products/${productId.value}`,
+    `http://localhost:3000/api/products/${productId.value}/bids`,
     {
-      method: "GET",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token.value}`,
       },
+      body: JSON.stringify({ price: offerPrice.value }),
     },
   );
 
   const res = await query.json();
 
   if (query.ok) {
-    product.value = res;
-    offerPrice.value = product.value.originalPrice;
-    countdownDiff.value = Math.floor(
-      Math.abs(Date.now() - new Date(product.value.endDate)) / 1000,
-    );
+    await getProduct();
   } else {
     errorText.value =
       `${res?.error}: ${res?.details}` ?? "Une erreur est survenue";
@@ -49,24 +215,32 @@ async function getProduct() {
 
   loading.value = false;
 }
+
+getProduct();
 </script>
 
 <template>
   <div class="row">
-    <div class="text-center mt-4" data-test-loading>
+    <div v-if="loading" class="text-center mt-4" data-test-loading>
       <div class="spinner-border" role="status">
         <span class="visually-hidden">Chargement...</span>
       </div>
     </div>
 
-    <div class="alert alert-danger mt-4" role="alert" data-test-error>
-      Une erreur est survenue lors du chargement des produits.
+    <div
+      v-if="errorText !== ''"
+      class="alert alert-danger mt-4"
+      role="alert"
+      data-test-error
+    >
+      {{ errorText }}
     </div>
-    <div class="row" data-test-product>
+
+    <div v-if="!loading && errorText === ''" class="row" data-test-product>
       <!-- Colonne de gauche : image et compte à rebours -->
       <div class="col-lg-4">
         <img
-          src="https://picsum.photos/id/250/512/512"
+          :src="product.pictureUrl"
           alt=""
           class="img-fluid rounded mb-3"
           data-test-product-picture
@@ -77,7 +251,7 @@ async function getProduct() {
           </div>
           <div class="card-body">
             <h6 class="card-subtitle mb-2 text-muted" data-test-countdown>
-              Temps restant : {{ countdown }}
+              Temps restant : {{ textCountdown }}
             </h6>
           </div>
         </div>
@@ -93,14 +267,22 @@ async function getProduct() {
           </div>
           <div class="col-lg-6 text-end">
             <RouterLink
-              :to="{ name: 'ProductEdition', params: { productId: 'TODO' } }"
+              v-if="isOwner()"
+              :to="{
+                name: 'ProductEdition',
+                params: { productId: product.id },
+              }"
               class="btn btn-primary"
               data-test-edit-product
             >
               Editer
             </RouterLink>
             &nbsp;
-            <button class="btn btn-danger" data-test-delete-product>
+            <button
+              v-if="isOwner()"
+              class="btn btn-danger"
+              data-test-delete-product
+            >
               Supprimer
             </button>
           </div>
@@ -108,27 +290,31 @@ async function getProduct() {
 
         <h2 class="mb-3">Description</h2>
         <p data-test-product-description>
-          Appareil photo argentique classique, parfait pour les amateurs de
-          photographie
+          {{ product.description }}
         </p>
 
         <h2 class="mb-3">Informations sur l'enchère</h2>
         <ul>
-          <li data-test-product-price>Prix de départ : 17 €</li>
-          <li data-test-product-end-date>Date de fin : 20 juin 2026</li>
+          <li data-test-product-price>
+            Prix de départ : {{ product.originalPrice }} €
+          </li>
+          <li data-test-product-end-date>
+            Date de fin : {{ formatDate(product.endDate) }}
+          </li>
+
           <li>
             Vendeur :
             <router-link
-              :to="{ name: 'User', params: { userId: 'TODO' } }"
+              :to="{ name: 'User', params: { userId: sellerId } }"
               data-test-product-seller
             >
-              alice
+              {{ seller.username }}
             </router-link>
           </li>
         </ul>
 
         <h2 class="mb-3">Offres sur le produit</h2>
-        <table class="table table-striped" data-test-bids>
+        <table v-if="sizeBids !== 0" class="table table-striped" data-test-bids>
           <thead>
             <tr>
               <th scope="col">Enchérisseur</th>
@@ -138,44 +324,59 @@ async function getProduct() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="i in 10" :key="i" data-test-bid>
+            <tr
+              v-for="bid in product.bids.slice().reverse()"
+              :key="bid.id"
+              data-test-bid
+            >
               <td>
                 <router-link
-                  :to="{ name: 'User', params: { userId: 'TODO' } }"
+                  :to="{ name: 'User', params: { userId: bid.bidder.id } }"
                   data-test-bid-bidder
                 >
-                  charly
+                  {{ bid.bidder.username }}
                 </router-link>
               </td>
-              <td data-test-bid-price>43 €</td>
-              <td data-test-bid-date>22 mars 2026</td>
+              <td data-test-bid-price>{{ bid.price }} €</td>
+              <td data-test-bid-date>{{ formatDate(bid.date) }}</td>
               <td>
-                <button class="btn btn-danger btn-sm" data-test-delete-bid>
+                <button
+                  @click="deleteBid(bid.id)"
+                  v-if="getUserId() === bid.bidderId || isAdmin"
+                  class="btn btn-danger btn-sm"
+                  data-test-delete-bid
+                >
                   Supprimer
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
-        <p data-test-no-bids>Aucune offre pour le moment</p>
+        <p v-if="sizeBids === 0" data-test-no-bids>
+          Aucune offre pour le moment
+        </p>
 
-        <form data-test-bid-form>
+        <form data-test-bid-form @submit.prevent="sendOffer">
           <div class="form-group">
             <label for="bidAmount">Votre offre :</label>
             <input
+              v-model="offerPrice"
               type="number"
+              min="10"
               class="form-control"
               id="bidAmount"
               data-test-bid-form-price
             />
+
             <small class="form-text text-muted">
-              Le montant doit être supérieur à 10 €.
+              Le montant doit être supérieur à {{ bidLowerPrice }} €.
             </small>
           </div>
           <button
+            v-if="isNotOwner()"
             type="submit"
             class="btn btn-primary"
-            disabled
+            :disabled="offerPrice <= bidLowerPrice"
             data-test-submit-bid
           >
             Enchérir
