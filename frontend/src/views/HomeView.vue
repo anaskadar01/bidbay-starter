@@ -5,53 +5,11 @@ const endpoint = "http://localhost:3000";
 const header = {
   "Content-Type": "application/json",
 };
+
 const loading = ref(false);
 const error = ref(false);
 const filterName = ref("");
 let listProduct = ref([]);
-async function fetchProducts() {
-  try {
-    const res = await fetch(`${endpoint}/api/products`, { header });
-    if (res.ok) {
-      const resJson = await res.json();
-      console.log(resJson);
-      return resJson.map((r) => ({
-        id: r.id,
-        name: r.name,
-        description: r.description,
-        category: r.category,
-        originalPrice: r.originalPrice,
-        pictureUrl: r.pictureUrl,
-        username: r.seller.username,
-        endDate: r.endDate,
-        bids: maxBidPrice(r.bids),
-      }));
-    }
-  } catch (e) {
-    error.value = true;
-  } finally {
-    loading.value = false;
-  }
-}
-
-function goodDate(date) {
-  let currentDate = new Date();
-  let inputDate = new Date(date);
-
-  if (currentDate > inputDate) {
-    return "Terminé";
-  } else {
-    let day = inputDate.getDate();
-    let month = inputDate.getMonth() + 1;
-    let year = inputDate.getFullYear();
-    let formattedDate = `${day < 10 ? "0" : ""}${day}/${month < 10 ? "0" : ""}${month}/${year}`;
-
-    return "En cours jusqu'au " + formattedDate;
-  }
-}
-
-fetchProducts().then((r) => (listProduct.value = r));
-//console.log(listProduct);
 
 function sortName() {
   let button = document.getElementById("buttonTri");
@@ -68,6 +26,59 @@ function sortName() {
     return 0;
   });
 }
+
+async function fetchProducts() {
+  loading.value = true;
+  error.value = false;
+  try {
+    const res = await fetch(`${endpoint}/api/products`, { header });
+    if (res.ok) {
+      const resJson = await res.json();
+      console.log(resJson);
+      const sortedProducts = resJson.map((r) => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        category: r.category,
+        originalPrice: r.originalPrice,
+        pictureUrl: r.pictureUrl,
+        username: r.seller.username,
+        endDate: r.endDate,
+        bids: maxBidPrice(r.bids),
+      }));
+      listProduct.value = sortedProducts;
+      sortName();
+      return sortedProducts;
+    }
+  } catch (e) {
+    error.value = true;
+  } finally {
+    loading.value = false;
+  }
+}
+
+
+
+fetchProducts();
+function goodDate(date) {
+  let currentDate = new Date();
+  let inputDate = new Date(date);
+
+  if (currentDate > inputDate) {
+    return "Terminé";
+  } else {
+    let day = inputDate.getDate();
+    let month = inputDate.getMonth() + 1;
+    let year = inputDate.getFullYear();
+    let formattedDate = `${day < 10 ? "0" : ""}${day}/${month < 10 ? "0" : ""}${month}/${year}`;
+
+    return "En cours jusqu'au " + formattedDate;
+  }
+}
+
+//fetchProducts().then((r) => (listProduct.value = r));
+//console.log(listProduct);
+
 
 function sortPrice() {
   let button = document.getElementById("buttonTri");
@@ -94,11 +105,11 @@ function maxBidPrice(bids) {
   }, bids[0].price);
   return maxPrice;
 }
+console.log("lalal");
 </script>
 <template>
   <div>
     <h1 class="text-center mb-4">Liste des produits</h1>
-
     <div class="row mb-3">
       <div class="col-md-6">
         <form>
@@ -201,7 +212,7 @@ function maxBidPrice(bids) {
             </p>
 
               <p class="card-text" data-test-product-date>
-                En cours jusqu'au {{ goodDate(product.endDate) }}
+                {{ goodDate(product.endDate) }}
               </p>
               <p v-if="product.bids" data-test-product-price>
                 Prix actuel : {{ product.originalPrice }} €
