@@ -1,89 +1,66 @@
 <script setup>
-import { ref, computed } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { ref } from "vue";
 
-import { useAuthStore } from "../store/auth";
+import { useAuthStore } from "@/store/auth";
 
 const { isAuthenticated, userData } = useAuthStore();
 
-const router = useRouter();
-const route = useRoute();
+const user = ref(null);
+const loading = ref(false);
+const error = ref(false);
 
-const errorText = ref("");
-const loading = ref(true);
-
-const userId = ref(route.params.userId);
-
-const isAdmin = computed(() => user.value && user.value.admin);
-
-const user = ref({});
-
-if (userId.value === "me") {
-  if (!isAuthenticated.value) {
-    router.push({ name: "Login" });
-  }
-
-  userId.value = userData.value.id;
-}
-
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString();
-};
-
-const bidUpperPrice = (product) => {
-  const bids = product.bids;
-
-  bids.sort((b1, b2) => b2.price - b1.price);
-
-  return bids?.[0]?.price ?? product.originalPrice;
-};
-
-const winBidStatus = (bid) => {
-  const productBids = bid.product.bids;
-
-  productBids.sort((b1, b2) => b2.price - b1.price);
-
-  console.log("---");
-  console.log(productBids?.[0]?.id, productBids?.[0]?.price);
-  console.log(bid.id, bid.price);
-
-  if (productBids?.[0] && productBids?.[0].id === bid.id) return true;
-
-  return false;
-};
-
-const filterBidsByDate = (bids) => {
-  return bids.sort((b1, b2) => new Date(b2.date) - new Date(b1.date));
-};
-
-async function getUser() {
-  const query = await fetch(`http://localhost:3000/api/users/${userId.value}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-
-  const res = await query.json();
-
-  if (query.ok) {
-    user.value = res;
+async function fetchUser(idUser) {
+  loading.value = true;
+  error.value = false;
+  let str;
+  if (idUser === "me") {
+    str = "http://localhost:3000/api/users/" + userData.value.id;
   } else {
-    errorText.value =
-      `${res?.error}: ${res?.details}` ?? "Une erreur est survenue";
+    str = "http://localhost:3000/api/users/" + idUser;
   }
 
-  loading.value = false;
+  try {
+    const response = await fetch(str);
+    user.value = await response.json();
+    loading.value = false;
+  } catch (e) {
+    error.value = true;
+    console.log(e);
+  } finally {
+    loading.value = false;
+  }
 }
 
-getUser();
+if (!isAuthenticated || userData == null) {
+  window.location.href = "LoginView.vue";
+}
+
+if (window.location.href.startsWith("http://localhost:5173/users/")) {
+  let userId;
+  if (window.location.href.includes("me")) {
+    fetchUser("me");
+  } else {
+    // Action pour l'utilisateur avec l'identifiant récupéré depuis l'URL
+    const regex = /http:\/\/localhost:5173\/users\/(.+)/;
+    const match = window.location.href.match(regex);
+    if (match && match.length > 1) {
+      userId = match[1];
+    }
+    fetchUser(userId);
+  }
+}
+
+console.log("test");
 </script>
 
 <template>
   <div>
-    <h1 v-if="!loading && !errorText" class="text-center" data-test-username>
-      Utilisateur {{ user.username }}
-      <span v-if="isAdmin" class="badge rounded-pill bg-primary" data-test-admin
+    <h1 class="text-center" data-test-username>
+      Utilisateur {{ user ? user.username : "" }}
+      <span
+        v-if="user ? user.admin : ''"
+        class="badge rounded-pill bg-primary"
+        data-test-admin
         >Admin</span
       >
     </h1>
@@ -91,18 +68,19 @@ getUser();
       <span class="spinner-border"></span>
       <span>Chargement en cours...</span>
     </div>
-    <div v-if="errorText" class="alert alert-danger mt-3" data-test-error>
-      {{ errorText }}
+    <div v-if="error" class="alert alert-danger mt-3" data-test-error>
+      Une erreur est survenue
     </div>
-    <div v-if="!loading && !errorText" data-test-view>
+    <div v-if="!loading && !error" data-test-view>
       <div class="row">
         <div class="col-lg-6">
           <h2>Produits</h2>
           <div class="row">
             <div
               class="col-md-6 mb-6 py-2"
-              v-for="product of user.products"
-              :data-test-product="product.name"
+              v-for="product in user ? user.products : null"
+              :key="product.id"
+              data-test-product
             >
               <div class="card">
                 <RouterLink
@@ -112,6 +90,7 @@ getUser();
                     :src="product.pictureUrl"
                     class="card-img-top"
                     data-test-product-picture
+                    alt="Image non trouvée"
                   />
                 </RouterLink>
                 <div class="card-body">
@@ -130,10 +109,7 @@ getUser();
                     {{ product.description }}
                   </p>
                   <p class="card-text" data-test-product-price>
-                    Prix actuel : {{ bidUpperPrice(product) }} €
-                  </p>
-                  <p class="card-text">
-                    Nombre d'offres : {{ product.bids.length }} €
+                    Prix de départ : {{ product.originalPrice }} €
                   </p>
                 </div>
               </div>
@@ -148,11 +124,14 @@ getUser();
                 <th scope="col">Produit</th>
                 <th scope="col">Offre</th>
                 <th scope="col">Date</th>
-                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="bid of filterBidsByDate(user.bids)" data-test-bid>
+              <tr
+                v-for="bid in user ? user.bids : null"
+                :key="bid.id"
+                data-test-bid
+              >
                 <td>
                   <RouterLink
                     :to="{
@@ -165,10 +144,7 @@ getUser();
                   </RouterLink>
                 </td>
                 <td data-test-bid-price>{{ bid.price }} €</td>
-                <td data-test-bid-date>{{ formatDate(bid.date) }}</td>
-                <td data-test-bid-date>
-                  {{ winBidStatus(bid) ? "Gagnante" : "Perdante" }}
-                </td>
+                <td data-test-bid-date>{{ bid.date }}</td>
               </tr>
             </tbody>
           </table>
