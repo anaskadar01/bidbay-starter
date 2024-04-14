@@ -9,6 +9,12 @@ const endpoint = "http://localhost:3000";
 const header = {
   "Content-Type": "application/json",
 };
+/**
+* Cette fonction récupère les produits depuis le back-end.
+* Elle met à jour les valeurs des produits, des messages d'erreur et de chargement.
+*
+* @returns {Promise<Array>}
+*/
 
 async function fetchProducts() {
   loading.value = true;
@@ -45,6 +51,11 @@ async function fetchProducts() {
 
 fetchProducts();
 
+/**
+ * return le prix max des enchères
+ * @param bids
+ * @returns {*|number}
+ */
 function maxBidPrice(bids) {
   if (bids.length === 0) {
     return 0;
@@ -55,6 +66,11 @@ function maxBidPrice(bids) {
   return maxPrice;
 }
 
+/**
+ * donne la date sous le bon format
+ * @param d
+ * @returns {string}
+ */
 function goodDate(d) {
   let currentDate = new Date();
   let inputDate = new Date(d);
@@ -71,12 +87,20 @@ function goodDate(d) {
   }
 }
 
-
+/**
+ * filtre les pruduits par leur nom
+ * @type {ComputedRef<UnwrapRefSimple<*>[]>}
+ */
 const filteredProduits = computed(() => {
   const searchTerm = search.value.toLowerCase();
-  return produits.value.filter(product => product.name.toLowerCase().includes(searchTerm));
+  return produits.value.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm),
+  );
 });
 
+/**
+ * tri les produits par le nom
+ */
 function sortName() {
   produits.value.sort(function (a, b) {
     var btn = (document.getElementById("sort-btn").innerHTML = "Trier par nom");
@@ -93,9 +117,13 @@ function sortName() {
   });
 }
 
+/**
+ * tri les produits par le prix
+ */
 function sortPrice() {
   produits.value.sort(function (a, b) {
-    var btn = (document.getElementById("sort-btn").innerHTML = "Trier par prix");
+    var btn = (document.getElementById("sort-btn").innerHTML =
+      "Trier par prix");
     const priceA = a.originalPrice;
     const priceB = b.originalPrice;
 
@@ -120,11 +148,11 @@ function sortPrice() {
           <div class="input-group">
             <span class="input-group-text">Filtrage</span>
             <input
-                v-model="search"
-                type="text"
-                class="form-control"
-                placeholder="Filtrer par nom"
-                data-test-filter
+              v-model="search"
+              type="text"
+              class="form-control"
+              placeholder="Filtrer par nom"
+              data-test-filter
             />
           </div>
         </form>
@@ -132,32 +160,32 @@ function sortPrice() {
       <div class="col-md-6 text-end">
         <div class="btn-group">
           <button
-              id="sort-btn"
-              type="button"
-              class="btn btn-primary dropdown-toggle"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-              data-test-sorter
+            id="sort-btn"
+            type="button"
+            class="btn btn-primary dropdown-toggle"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            data-test-sorter
           >
             Trier par nom
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
             <li>
               <a
-                  class="dropdown-item"
-                  href="#"
-                  @click="sortName()"
-                  data-test-sorter-name
-              >Nom</a
+                class="dropdown-item"
+                href="#"
+                @click="sortName()"
+                data-test-sorter-name
+                >Nom</a
               >
             </li>
             <li>
               <a
-                  class="dropdown-item"
-                  href="#"
-                  @click="sortPrice()"
-                  data-test-sorter-price
-              >Prix</a
+                class="dropdown-item"
+                href="#"
+                @click="sortPrice()"
+                data-test-sorter-price
+                >Prix</a
               >
             </li>
           </ul>
@@ -172,34 +200,36 @@ function sortPrice() {
     </div>
 
     <div
-        v-if="error"
-        class="alert alert-danger mt-4"
-        role="alert"
-        data-test-error
+      v-if="error"
+      class="alert alert-danger mt-4"
+      role="alert"
+      data-test-error
     >
       Une erreur est survenue lors du chargement des produits.
     </div>
 
     <div class="row">
       <div
-          class="col-md-4 mb-4"
-          v-for="product in filteredProduits"
-          :key="product.key"
-          data-test-product
+        class="col-md-4 mb-4"
+        v-for="product in filteredProduits"
+        :key="product.key"
+        data-test-product
       >
         <div class="card">
-          <RouterLink :to="{ name: 'Product', params: { productId: product.id } }">
+          <RouterLink
+            :to="{ name: 'Product', params: { productId: product.id } }"
+          >
             <img
-                :src="product.pictureUrl"
-                data-test-product-picture
-                class="card-img-top"
+              :src="product.pictureUrl"
+              data-test-product-picture
+              class="card-img-top"
             />
           </RouterLink>
           <div class="card-body">
             <h5 class="card-title">
               <RouterLink
-                  data-test-product-name
-                  :to="{ name: 'Product', params: { productId: product.id } }"
+                data-test-product-name
+                :to="{ name: 'Product', params: { productId: product.id } }"
               >
                 {{ product.name }}
               </RouterLink>
@@ -210,8 +240,8 @@ function sortPrice() {
             <p class="card-text">
               Vendeur :
               <RouterLink
-                  data-test-product-seller
-                  :to="{ name: 'User', params: { userId: product.sellerId } }"
+                data-test-product-seller
+                :to="{ name: 'User', params: { userId: product.sellerId } }"
               >
                 {{ product.seller.username }}
               </RouterLink>

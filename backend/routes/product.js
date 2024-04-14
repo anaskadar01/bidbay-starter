@@ -3,7 +3,9 @@ import { Bid, Product, User } from '../orm/index.js'
 import authMiddleware from '../middlewares/auth.js'
 
 const router = express.Router()
-
+/**
+ * Obtenir tous les produits :
+ */
 router.get('/api/products', async (req, res, next) => {
   try {
     const products = await Product.findAll({
@@ -20,7 +22,9 @@ router.get('/api/products', async (req, res, next) => {
     next(error)
   }
 })
-
+/**
+ * Obtenir un produit spécifique
+ */
 router.get('/api/products/:productId', async (req, res) => {
   try {
     const product = await Product.findByPk(req.params.productId, {
@@ -43,7 +47,9 @@ router.get('/api/products/:productId', async (req, res) => {
   } catch (error) {
   }
 })
-
+/**
+ * Ajouter un nouveau produit :
+ */
 router.post('/api/products', authMiddleware, async (req, res) => {
   try {
     const { name, description, category, originalPrice, pictureUrl, endDate } = req.body;
@@ -73,7 +79,9 @@ router.post('/api/products', authMiddleware, async (req, res) => {
   }
 });
 
-
+/**
+ * Mettre à jour un produit existant
+ */
 router.put('/api/products/:productId', authMiddleware, async (req, res) => {
   try {
     const productId = req.params.productId
@@ -119,7 +127,9 @@ router.put('/api/products/:productId', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Erreur lors de la mise à jour du produit' })
   }
 })
-
+/**
+ * Supprimer un produit existant :
+ */
 router.delete('/api/products/:productId', authMiddleware, async (req, res) => {
   try {
     if (!req.user) {

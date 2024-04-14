@@ -19,6 +19,10 @@ const countdown = ref(new Date());
 const countdownSecond = ref(0);
 const textCountdown = ref("");
 
+/**
+ * recupère les produits
+ * @returns {Promise<void>}
+ */
 async function getProduct() {
   try {
     const query = await fetch(
@@ -63,11 +67,19 @@ async function getProduct() {
   }
 }
 
+/**
+ * set l'interval avec son temps en ms
+ */
 setInterval(() => {
   countdownSecond.value = countdownSecond.value - 0.2;
   textCountdown.value = countdownText();
 }, 1000);
 
+/**
+ * change le format des dates
+ * @param date
+ * @returns {string}
+ */
 function formatDate(date) {
   if (date === "1970-01-01T00:00:00.008Z") {
     return "8 avril 2024";
@@ -77,15 +89,27 @@ function formatDate(date) {
   return new Date(date).toLocaleDateString("fr-FR", options);
 }
 
+/**
+ * Cette fonction convertit la valeur du compte à rebours en secondes et met à jour la variable
+ */
 function transformCountdownInSecond() {
   countdownSecond.value = Math.floor(countdown.value.getTime() / 1000);
 }
 
+/**
+ * Cette fonction calcule la différence en secondes entre le compte à rebours et la date actuelle.
+ * @returns {number}
+ */
 function difCountdownFromToday() {
   const today = Math.floor(new Date().getTime() / 1000);
   return countdownSecond.value - today;
 }
 
+/**
+ * Cette fonction génère un texte représentant le temps restant jusqu'à la fin du compte à rebours sous forme de jours, heures, minutes et secondes.
+ * Si le compte à rebours est écoulé, elle renvoie "Terminé".
+ * @returns {string}
+ */
 function countdownText() {
   if (difCountdownFromToday() < 0) {
     return "Terminé";
@@ -118,6 +142,11 @@ function countdownText() {
   }
 }
 
+/**
+ * Cette fonction calcule et retourne le prix de l'offre maximale pour un produit en ajoutant 1 au prix de l'offre maximale existante,
+ * ou en utilisant le prix d'origine du produit s'il n'y a pas d'offres existantes.
+ * @returns {*}
+ */
 function getOfferPrice() {
   const bids = product.value?.bids ?? [];
   bids.sort((b1, b2) => b2.price - b1.price);
@@ -130,6 +159,10 @@ function getOfferPrice() {
   }
 }
 
+/**
+ * Cette fonction vérifie si l'utilisateur actuel est le propriétaire du produit en comparant son ID avec l'ID du vendeur du produit, ou s'il est administrateur.
+ * @returns {boolean}
+ */
 function isOwner() {
   try {
     return userData.value.id === product.value.sellerId || userData.value.admin;
@@ -138,6 +171,10 @@ function isOwner() {
   }
 }
 
+/**
+ * Cette fonction vérifie si l'utilisateur actuel n'est pas le propriétaire du produit en comparant son ID avec l'ID du vendeur du produit.
+ * @returns {boolean}
+ */
 function isNotOwner() {
   try {
     return userData.value.id !== product.value.sellerId;
@@ -146,6 +183,10 @@ function isNotOwner() {
   }
 }
 
+/**
+ * retourne l'ID de l'utilisateur actuel.
+ * @returns {number|string}
+ */
 function getUserId() {
   try {
     return userData.value.id;
@@ -154,6 +195,11 @@ function getUserId() {
   }
 }
 
+/**
+ * Cette fonction supprime une offre (enchère) spécifique.
+ * @param bidId
+ * @returns {Promise<void>}
+ */
 async function deleteBid(bidId) {
   if (loading.value) return;
 
@@ -179,6 +225,11 @@ async function deleteBid(bidId) {
   loading.value = false;
 }
 
+/**
+ * Cette fonction calculée retourne le prix le plus bas parmi les offres actuelles pour un produit. Si aucune offre n'existe,
+ * elle retourne le prix d'origine du produit ou 10 par défaut.
+ * @type {ComputedRef<unknown>}
+ */
 const bidLowerPrice = computed(() => {
   const bids = product.value?.bids ?? [];
 
@@ -187,6 +238,10 @@ const bidLowerPrice = computed(() => {
   return bids?.[0]?.price ?? product.value?.originalPrice ?? 10;
 });
 
+/**
+ * Cette fonction envoie une nouvelle offre pour un produit spécifique à l'API en utilisant le prix fourni.
+ * @returns {Promise<void>}
+ */
 async function sendOffer() {
   if (loading.value) return;
 

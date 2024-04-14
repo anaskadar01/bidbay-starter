@@ -25,7 +25,10 @@ const product = ref({
   endDate: new Date(),
   sellerId: 0,
 });
-
+/**
+ * Recherche les details de produits
+ * @returns {Promise<any>}
+ */
 const fetchProductDetails = async () => {
   try {
     const response = await fetch(
@@ -59,7 +62,10 @@ fetchProductDetails(productId.value)
   .catch((error) => {
     console.error("Error fetching product details:", error);
   });
-
+/**
+ * Vérifie la forme valide
+ * @type {ComputedRef<unknown>}
+ */
 const isValidForm = computed(() => {
   return (
     product.value.name &&
@@ -73,7 +79,11 @@ const isValidForm = computed(() => {
 
 const isLoading = ref(false);
 const buttonFailed = ref(false);
-
+/**
+ * Mise à jour des produits
+ * @param e
+ * @returns {Promise<void>}
+ */
 const updateProduct = async (e) => {
   e.preventDefault();
   isLoading.value = true;

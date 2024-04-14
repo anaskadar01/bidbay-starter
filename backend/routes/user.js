@@ -2,7 +2,9 @@ import express from 'express'
 import { User, Product, Bid } from '../orm/index.js'
 
 const router = express.Router()
-
+/**
+ * Obtenir un utilisateur
+ */
 router.get('/api/users/:userId', async (req, res) => {
   try {
     const user = await User.findByPk(req.params.userId, {

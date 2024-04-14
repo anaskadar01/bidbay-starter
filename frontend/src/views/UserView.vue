@@ -9,6 +9,12 @@ const user = ref(null);
 const loading = ref(false);
 const error = ref(false);
 
+/**
+ *
+ * rechercher l'utilisateur
+ * @param idUser
+ * @returns {Promise<void>}
+ */
 async function fetchUser(idUser) {
   loading.value = true;
   error.value = false;

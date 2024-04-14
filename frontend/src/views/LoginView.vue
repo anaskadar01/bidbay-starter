@@ -14,7 +14,10 @@ const email = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const isSubmitting = ref(false);
-
+/**
+ * Récupère les users
+ * @returns {Promise<void>}
+ */
 const registerUser = async () => {
   isSubmitting.value = true;
 

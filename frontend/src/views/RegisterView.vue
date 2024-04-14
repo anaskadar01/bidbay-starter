@@ -20,7 +20,10 @@ const isSubmitting = ref(false);
 const notMatchingPassword = computed(
   () => password.value !== passwordConfirmation.value
 );
-
+/**
+ * recupère l'utilisateur
+ * @returns {Promise<void>}
+ */
 const registerUser = async () => {
   if (notMatchingPassword.value) {
     return;

@@ -3,7 +3,9 @@ import { Bid, Product } from '../orm/index.js'
 import express from 'express'
 
 const router = express.Router()
-
+/**
+ * Supprimer une enchère
+ */
 router.delete('/api/bids/:bidId', authMiddleware, async (req, res) => {
   try {
     if (!req.user) {
@@ -29,7 +31,9 @@ router.delete('/api/bids/:bidId', authMiddleware, async (req, res) => {
   }
   res.status(600).send()
 })
-
+/**
+ * Créer une nouvelle enchère pour un produit
+ */
 router.post('/api/products/:productId/bids', authMiddleware, async (req, res) => {
   try {
     const productId = req.params.productId

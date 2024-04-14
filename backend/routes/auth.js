@@ -127,7 +127,9 @@ router.post('/api/auth/login', async (req, res) => {
     res.status(401).json({ error: 'Invalid credentials', details: getDetails(e) })
   }
 })
-
+/**
+ * Cette route permet à un utilisateur authentifié d'envoyer une nouvelle offre pour un produit.
+ */
 router.post('/api/products/:productId/bids', authMiddleware, async (req, res) => {
   try {
     const productId = req.params.productId

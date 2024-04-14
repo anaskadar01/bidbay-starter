@@ -20,6 +20,10 @@ const productOriginalPrice = ref("");
 const productPictureUrl = ref("");
 const productEndDate = ref("");
 
+/**
+ * ajout d'un produit
+ * @returns {Promise<void>}
+ */
 async function addProduct() {
   try {
     loading.value = true;
